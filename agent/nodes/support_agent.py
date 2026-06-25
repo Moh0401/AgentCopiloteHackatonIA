@@ -1,53 +1,64 @@
 """Nœud Agent Support — spécialiste RAG réclamations."""
 
-from functools import lru_cache
-
-from langchain_core.messages import AIMessage, SystemMessage
-from langgraph.prebuilt import create_react_agent
-from langchain_community.agent_toolkits.sql.toolkit import SQLDatabase, SQLDatabaseToolkit
-
+from langchain_core.messages import AIMessage
+from langchain_core.prompts import ChatPromptTemplate
 from agent.config import llm
 from agent.state import AgentState
-from agent.tools.db import get_mysql_engine
-
-SUPPORT_SYSTEM = """Tu es l'agent Support de MaliAgro.
-Interdiction absolue d'inventer des chiffres ou des faits.
-Tu DOIS exécuter une requête SQL sur la table 'reclamations' pour répondre aux questions de support.
-Réponds obligatoirement à partir des données SQL réelles et ne fais aucune supposition.
-
-Tables disponibles :
-- reclamations
-
-Règles strictes :
-- Lorsque l'utilisateur demande une réclamation, un cas client, une statistique ou un motif d'insatisfaction, TU DOIS ABSOLUMENT utiliser les outils SQL fournis.
-- Ne rédige jamais la requête SQL pour l'utilisateur.
-- Ne pré-explique pas comment construire la requête.
-- Utilise UNIQUEMENT des requêtes SELECT.
-- Si le résultat est vide, indique clairement qu'aucune réclamation n'a été trouvée.
-"""
-
-@lru_cache(maxsize=1)
-def _get_support_agent():
-    support_db = SQLDatabase(
-        get_mysql_engine(),
-        include_tables=["reclamations"],
-        lazy_table_reflection=True,
-    )
-    support_toolkit = SQLDatabaseToolkit(db=support_db, llm=llm)
-    return create_react_agent(
-        llm,
-        tools=support_toolkit.get_tools(),
-        prompt=SystemMessage(content=SUPPORT_SYSTEM),
-    )
-
+from agent.tools import search_company_docs
+from agent.tools.support_vector import search_complaints
 
 def support_agent_node(state: AgentState) -> dict:
-    """Exécute l'agent Support avec outils RAG."""
+    """Exécute l'agent Support avec outils RAG et SQL manuels."""
     try:
-        result = _get_support_agent().invoke({"messages": state["messages"]})
-        last_message = result["messages"][-1]
+        # Étape 1 : Choisir l'outil et l'argument
+        prompt_tool = ChatPromptTemplate.from_messages([
+            ("system", "Tu es un agent de support client.\n"
+                       "Tu as accès à deux bases de connaissances :\n"
+                       "1. La FAQ et les politiques internes de l'entreprise.\n"
+                       "2. La base de données des réclamations clients passées.\n\n"
+                       "Si la question concerne les règles, politiques, FAQ, ou quoi faire dans une situation (ex: sac mouillé), tu DOIS chercher dans la FAQ.\n"
+                       "Si la question concerne les statistiques de plaintes ou des clients mécontents spécifiques, cherche dans les réclamations.\n\n"
+                       "Réponds UNIQUEMENT par l'une des commandes suivantes :\n"
+                       "- SEARCH_DOCS: <mots clés de recherche>\n"
+                       "- SEARCH_RECLAMATIONS: <mots clés de recherche>\n"
+                       "Exemple: SEARCH_DOCS: sac riz mouillé remboursement"),
+            ("placeholder", "{messages}")
+        ])
+        chain_tool = prompt_tool | llm
+        res_tool = chain_tool.invoke({"messages": state["messages"]})
+        command = res_tool.content.strip()
+        
+        # Étape 2 : Exécuter l'outil
+        if command.startswith("SEARCH_DOCS:"):
+            query = command.replace("SEARCH_DOCS:", "").strip()
+            db_result = search_company_docs.invoke({"query": query})
+            source = "FAQ / Politiques Internes"
+        elif command.startswith("SEARCH_RECLAMATIONS:"):
+            query = command.replace("SEARCH_RECLAMATIONS:", "").strip()
+            db_result = search_complaints.invoke({"query": query})
+            source = "Base de données des réclamations"
+        else:
+            # Fallback par défaut sur la FAQ
+            db_result = search_company_docs.invoke({"query": command})
+            source = "FAQ / Politiques Internes"
+
+        # Étape 3 : Formuler la réponse finale
+        prompt_final = ChatPromptTemplate.from_messages([
+            ("system", "Tu es l'agent Support de MaliAgro.\n"
+                       "Réponds à la question de l'utilisateur en te basant UNIQUEMENT sur les informations suivantes issues de '{source}' :\n\n"
+                       "{db_result}\n\n"
+                       "N'invente aucune règle. Si l'information n'est pas dans le texte, dis-le clairement."),
+            ("placeholder", "{messages}")
+        ])
+        chain_final = prompt_final | llm
+        final_res = chain_final.invoke({
+            "messages": state["messages"],
+            "source": source,
+            "db_result": db_result
+        })
+
         return {
-            "messages": [AIMessage(content=last_message.content, name="support_agent")],
+            "messages": [AIMessage(content=final_res.content, name="support_agent")],
             "current_agent": "support_agent",
         }
     except Exception as exc:

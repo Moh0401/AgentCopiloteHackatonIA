@@ -13,7 +13,7 @@ SYSTEM_PROMPT = """Tu es le superviseur d'un copilote IA pour dirigeants de PME.
 Analyse la demande de l'utilisateur et route vers l'agent le plus compétent :
 
 - sales_agent : questions sur les ventes, chiffre d'affaires, produits, régions, statistiques SQL
-- support_agent : réclamations clients, insatisfaction, motifs de plaintes, support
+- support_agent : réclamations clients, insatisfaction, motifs de plaintes, support, FAQ, politiques internes, règles de l'entreprise, documents RAG
 - marketing_agent : fidélisation, clients inactifs, segmentation, portefeuille client
 - FINISH : uniquement si un agent spécialisé a déjà répondu à la question en cours
 
@@ -35,7 +35,7 @@ def _fallback_route(content: str) -> Literal["sales_agent", "support_agent", "ma
     content = content.lower()
     if any(k in content for k in ("vente", "ca", "chiffre", "produit", "sql")):
         return "sales_agent"
-    if any(k in content for k in ("réclamation", "plainte", "support", "insatisfaction")):
+    if any(k in content for k in ("réclamation", "plainte", "support", "insatisfaction", "politique", "faq", "règle", "mouillé", "livré")):
         return "support_agent"
     if any(k in content for k in ("client", "fidél", "inactif", "segment")):
         return "marketing_agent"
@@ -54,18 +54,25 @@ def supervisor_node(state: AgentState) -> dict:
         return {"next": "FINISH", "current_agent": "supervisor"}
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
+        ("system", SYSTEM_PROMPT + "\n\nRéponds UNIQUEMENT par le nom de l'agent choisi parmi : sales_agent, support_agent, marketing_agent, ou FINISH. Aucun autre texte."),
         MessagesPlaceholder(variable_name="messages"),
     ])
 
-    chain = prompt | llm.with_structured_output(RouteDecision, method="json_schema")
-
     try:
-        decision = chain.invoke({"messages": messages})
-        next_agent: Literal[
-            "sales_agent", "support_agent", "marketing_agent", "FINISH"
-        ] = decision.next
-    except Exception:
+        chain = prompt | llm
+        response = chain.invoke({"messages": messages})
+        output = response.content.strip().lower()
+        
+        if "support_agent" in output:
+            next_agent = "support_agent"
+        elif "marketing_agent" in output:
+            next_agent = "marketing_agent"
+        elif "finish" in output:
+            next_agent = "FINISH"
+        else:
+            next_agent = "sales_agent"
+    except Exception as exc:
+        print(f"Erreur supervisor LLM: {exc}")
         next_agent = _fallback_route(str(last.content))
 
     if next_agent == "FINISH":
