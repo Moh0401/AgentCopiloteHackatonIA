@@ -1,4 +1,5 @@
-# Copilote IA pour PME SaaS (Challenge IA)
+# AgentCopiloteHackatonIA
+## Copilote IA pour PME SaaS (Challenge IA)
 
 Ce projet implémente un assistant décisionnel basé sur une architecture multi-agents supervisée avec **LangGraph**. Il permet aux dirigeants et équipes de PME d'interagir en langage naturel avec leurs données de ventes, de gestion client et de support.
 
