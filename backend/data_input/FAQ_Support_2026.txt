@@ -1,0 +1,15 @@
+# FAQ et Procédures de Support Client - MaliAgro
+
+## 1. Politique de Retour et Réclamations sur la Marchandise
+Tout client constatant un défaut sur la marchandise (ex: sac de riz déchiré, mouillé ou erreur de comptage au déchargement) doit le signaler dans les 48 heures suivant la livraison. Passé ce délai, aucune réclamation produit n'est acceptée. Le litige doit être consigné par l'agent SAV (`RESPON_REL_CLIENT`).
+
+## 2. Retards de Livraison sur les Axes Routiers (ex: Axe Bamako-Ségou)
+Si un client appelle pour signaler un retard de livraison :
+1. L'agent de niveau 1 doit contacter le chauffeur ou le prestataire logistique pour géolocaliser le camion.
+2. Si le retard est dû à un cas de force majeure (panne mécanique, contrôle routier), en informer immédiatement le client et lui donner une nouvelle estimation de livraison.
+3. Si le retard dépasse 24 heures, remonter le ticket au gérant de la PME (`RESPON_PME`) pour un geste commercial (remise sur la prochaine commande).
+
+## 3. Erreurs de Facturation et Paiements Mobiles (Orange Money / Wave)
+En cas de double débit lors d'un paiement mobile ou d'une erreur de saisie de la vente par le commercial :
+- Le ticket doit être immédiatement transmis au service comptabilité via notre outil interne **HadaBooks**.
+- Ne jamais procéder à un remboursement en espèces ou en crédit mobile directement sur le terrain sans la validation de HadaBooks.

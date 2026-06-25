@@ -1,0 +1,12 @@
+# Charte des employés et politique interne - MaliAgro
+
+## 1. Enregistrement des Ventes et Activité Terrain
+Les commerciaux et agents de vente ont l'obligation d'enregistrer chaque transaction en temps réel sur l'application (`POST /api/ventes`) dès la signature du bon de livraison. Aucune sortie de stock n'est tolérée sans validation numérique du jeton d'authentification de l'agent.
+
+## 2. Frais professionnels et Déplacements
+Les frais de carburant et les repas d'affaires lors des prospections en région (ex: Ségou, Sikasso) sont pris en charge :
+- Repas d'affaires : Remboursés jusqu'à 20 000 F CFA par personne.
+- Les reçus de carburant et justificatifs doivent être numérisés et soumis via l'application **Sini-Import** avant le 25 de chaque mois pour traitement par la comptabilité.
+
+## 3. Matériel informatique et Terminaux de Vente
+Tous les développeurs de l'équipe technique ainsi que les gestionnaires de stock ont droit au renouvellement de leur matériel (ordinateur portable ou terminal mobile durci de inventaire) tous les 3 ans. Le budget maximum alloué est de 1 300 000 F CFA par équipement.
