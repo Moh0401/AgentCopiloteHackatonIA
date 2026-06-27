@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from agent.config import llm
 from agent.state import AgentState
 from agent.tools import search_company_docs
-from agent.tools.support_vector import search_complaints
+from agent.tools.support_vector import search_complaints, get_complaint_summary
 
 def support_agent_node(state: AgentState) -> dict:
     """Exécute l'agent Support avec outils RAG et SQL manuels."""
@@ -17,10 +17,14 @@ def support_agent_node(state: AgentState) -> dict:
                        "1. La FAQ et les politiques internes de l'entreprise.\n"
                        "2. La base de données des réclamations clients passées.\n\n"
                        "Si la question concerne les règles, politiques, FAQ, ou quoi faire dans une situation (ex: sac mouillé), tu DOIS chercher dans la FAQ.\n"
-                       "Si la question concerne les statistiques de plaintes ou des clients mécontents spécifiques, cherche dans les réclamations.\n\n"
+                       "Si la question concerne les réclamations ou des clients mécontents spécifiques, cherche dans les réclamations avec SEARCH_RECLAMATIONS.\n"
+                       "Si la question demande un résumé, une analyse globale ou des statistiques sur les réclamations, utilise la commande SUMMARY_RECLAMATIONS.\n"
+                       "Si tu as besoin de voir la liste complète ou les réclamations récentes pour les analyser, utilise RECENT_RECLAMATIONS.\n\n"
                        "Réponds UNIQUEMENT par l'une des commandes suivantes :\n"
                        "- SEARCH_DOCS: <mots clés de recherche>\n"
                        "- SEARCH_RECLAMATIONS: <mots clés de recherche>\n"
+                       "- SUMMARY_RECLAMATIONS\n"
+                       "- RECENT_RECLAMATIONS\n"
                        "Exemple: SEARCH_DOCS: sac riz mouillé remboursement"),
             ("placeholder", "{messages}")
         ])
@@ -37,6 +41,12 @@ def support_agent_node(state: AgentState) -> dict:
             query = command.replace("SEARCH_RECLAMATIONS:", "").strip()
             db_result = search_complaints.invoke({"query": query})
             source = "Base de données des réclamations"
+        elif command.startswith("SUMMARY_RECLAMATIONS") or command.startswith("ANALYSE_RECLAMATIONS"):
+            db_result = get_complaint_summary.invoke({})
+            source = "Base de données des réclamations (Résumé stat)"
+        elif command.startswith("RECENT_RECLAMATIONS"):
+            db_result = search_complaints.invoke({"query": ""})
+            source = "Base de données des réclamations (Récentes)"
         else:
             # Fallback par défaut sur la FAQ
             db_result = search_company_docs.invoke({"query": command})

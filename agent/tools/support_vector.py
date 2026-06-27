@@ -29,16 +29,27 @@ def search_complaints(query: str, limit: int = 5) -> str:
         search_value = _normalize_search_string(query)
         engine = get_mysql_engine()
         with Session(engine) as session:
-            result = session.execute(
-                text("""
-                   SELECT id, description, status, titre
-                FROM reclamations
-                WHERE titre LIKE :search OR description LIKE :search
-                ORDER BY created_at DESC
-                LIMIT :limit
-                """),
-                {"search": search_value, "limit": limit},
-            )
+            if not query.strip():
+                result = session.execute(
+                    text("""
+                       SELECT id, description, statut, titre
+                    FROM reclamations
+                    ORDER BY id DESC
+                    LIMIT :limit
+                    """),
+                    {"limit": limit},
+                )
+            else:
+                result = session.execute(
+                    text("""
+                       SELECT id, description, statut, titre
+                    FROM reclamations
+                    WHERE titre LIKE :search OR description LIKE :search
+                    ORDER BY id DESC
+                    LIMIT :limit
+                    """),
+                    {"search": search_value, "limit": limit},
+                )
             rows = result.fetchall()
 
             if not rows:
@@ -47,11 +58,11 @@ def search_complaints(query: str, limit: int = 5) -> str:
             lines = []
             for row in rows:
                 lines.append(
-                    f"[#{row.id}] statut={row.status} date={row.created_at}\\n"
-                    f"Sujet: {row.subject}\\n"
+                    f"[#{row.id}] statut={row.statut}\n"
+                    f"Sujet: {row.titre}\n"
                     f"Description: {row.description}"
                 )
-            return "\\n\\n".join(lines)
+            return "\n\n".join(lines)
 
     except Exception as exc:
         return f"Erreur recherche réclamations : {exc}"
@@ -65,16 +76,16 @@ def get_complaint_summary() -> str:
         with Session(engine) as session:
             result = session.execute(
                 text("""
-                    SELECT status, COUNT(*) AS count
-                    FROM complaints
-                    GROUP BY status
+                    SELECT statut, COUNT(*) AS count
+                    FROM reclamations
+                    GROUP BY statut
                     ORDER BY count DESC
                 """),
             )
             rows = result.fetchall()
             if not rows:
                 return "Aucune réclamation enregistrée."
-            return "\\n".join(f"- {row.status}: {row.count}" for row in rows)
+            return "\n".join(f"- {row.statut}: {row.count}" for row in rows)
 
     except Exception as exc:
         return f"Erreur résumé réclamations : {exc}"

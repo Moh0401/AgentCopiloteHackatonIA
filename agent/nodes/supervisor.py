@@ -12,8 +12,8 @@ from agent.state import AgentState, MemberName
 SYSTEM_PROMPT = """Tu es le superviseur d'un copilote IA pour dirigeants de PME.
 Analyse la demande de l'utilisateur et route vers l'agent le plus compétent :
 
-- sales_agent : questions sur les ventes, chiffre d'affaires, produits, régions, statistiques SQL
-- support_agent : réclamations clients, insatisfaction, motifs de plaintes, support, FAQ, politiques internes, règles de l'entreprise, documents RAG
+- sales_agent : questions sur les ventes, chiffre d'affaires, produits, régions, statistiques SQL sur les ventes
+- support_agent : réclamations clients, résumé des réclamations, statistiques de réclamations, insatisfaction, motifs de plaintes, support, FAQ, politiques internes, règles de l'entreprise, documents RAG
 - marketing_agent : fidélisation, clients inactifs, segmentation, portefeuille client
 - FINISH : uniquement si un agent spécialisé a déjà répondu à la question en cours
 
